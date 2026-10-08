@@ -3,4 +3,6 @@
 ## How much time each day
 - 2 hours
 ## how long last 
+- one week
 ** bold **
+## New York City
