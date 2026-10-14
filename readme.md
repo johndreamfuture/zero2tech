@@ -5,6 +5,16 @@
 
 跟着这一节课件一步步改下来，你会把它改造成 ES 模块化的版本——这份模块化成果，就是 4.2 那一节的出发点（下一节我们在它基础上配 Vite 工具链）。
 
+# Update the file 10/13/2026
+## This is my work today
+- Manhattan
+- Downtown
+1. Java with spring boot
+2. Python with fast api
+3. Node with express
+> This is a refrence from my course.
+---
+
 ## 它当前是什么样
 
 - 两个页面：`index.html`（个人主页）、`text-lab.html`（文字实验室）
