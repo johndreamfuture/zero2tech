@@ -13,6 +13,10 @@
 2. Python with fast api
 3. Node with express
 > This is a refrence from my course.
+```
+For a real engineer, working is happy! 
+
+```
 ---
 
 ## 它当前是什么样
