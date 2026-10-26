@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手势接星星 - 欢乐音乐完整版</title>
+    <title>Play with star - Joyful music</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -148,19 +148,19 @@
                 <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
                     <i class="fa-solid fa-star text-white"></i>
                 </div>
-                <h1 class="text-2xl font-bold">手势接星星 - 欢乐音乐版</h1>
+                <h1 class="text-2xl font-bold">Play with star - Cheerful music</h1>
             </div>
             <div class="flex items-center gap-4">
                 <div class="flex items-center text-sm bg-slate-800/50 px-3 py-1.5 rounded-full">
                     <span class="status-dot status-loading" id="status-indicator"></span>
-                    <span id="status-text">准备中...</span>
+                    <span id="status-text">readying...</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="music-toggle" class="p-2 rounded-full bg-slate-800/50 hover:bg-slate-700 transition-colors">
                         <i class="fa-solid fa-volume-high"></i>
                     </button>
                     <div class="text-xl font-bold text-yellow-400">
-                        得分: <span id="score">0</span>
+                        score: <span id="score">0</span>
                     </div>
                 </div>
             </div>
@@ -180,10 +180,10 @@
                     <!-- 游戏控制按钮 -->
                     <div class="p-4 flex justify-center gap-4">
                         <button id="start-game-btn" class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg font-medium hover:opacity-90 transition-opacity">
-                            <i class="fa-solid fa-play mr-2"></i>开始游戏
+                            <i class="fa-solid fa-play mr-2"></i>start
                         </button>
                         <button id="reset-btn" class="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 rounded-lg font-medium hover:opacity-90 transition-opacity">
-                            <i class="fa-solid fa-redo mr-2"></i>重置
+                            <i class="fa-solid fa-redo mr-2"></i>reset
                         </button>
                     </div>
                 </div>
@@ -193,43 +193,43 @@
             <div class="space-y-6">
                 <!-- 摄像头预览 -->
                 <div class="glass-panel rounded-xl p-4">
-                    <h3 class="text-lg font-semibold mb-3">摄像头预览</h3>
+                    <h3 class="text-lg font-semibold mb-3">camera preview</h3>
                     <div class="video-feed">
                         <video class="input_video" playsinline></video>
                         <canvas class="output_canvas"></canvas>
                     </div>
-                    <p class="text-xs text-slate-400 mt-2 text-center">移动你的手来控制角色左右移动</p>
+                    <p class="text-xs text-slate-400 mt-2 text-center">Move your hand to control the character's movement left and right</p>
                 </div>
 
                 <!-- 音乐选择面板 -->
                 <div class="glass-panel rounded-xl p-4">
-                    <h3 class="text-lg font-semibold mb-3">选择背景音乐</h3>
+                    <h3 class="text-lg font-semibold mb-3">Select background music</h3>
                     <div class="music-selector">
-                        <div class="music-option active" data-music="0">童趣风</div>
-                        <div class="music-option" data-music="1">魔性风</div>
-                        <div class="music-option" data-music="2">萌系风</div>
+                        <div class="music-option active" data-music="0">Childlike style</div>
+                        <div class="music-option" data-music="1">Addictive style</div>
+                        <div class="music-option" data-music="2">Cute style</div>
                     </div>
                 </div>
 
                 <!-- 游戏说明 -->
                 <div class="glass-panel rounded-xl p-4">
-                    <h3 class="text-lg font-semibold mb-3">游戏规则</h3>
+                    <h3 class="text-lg font-semibold mb-3">Game Rules</h3>
                     <ul class="space-y-2 text-sm text-slate-300">
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-green-400 mt-1"></i>
-                            <span>伸出手掌，在摄像头前左右移动</span>
+                            <span>Extend your palm and move it from side to side in front of the camera.</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-green-400 mt-1"></i>
-                            <span>控制底部角色接住掉落的星星</span>
+                            <span>Control the character at the bottom to catch the falling stars.</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-green-400 mt-1"></i>
-                            <span>每接住一颗星星得10分，触发欢乐得分音效</span>
+                            <span>Each star caught awards 10 points and triggers a cheerful scoring sound effect.</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-green-400 mt-1"></i>
-                            <span>切换不同风格背景音乐，体验不同欢乐氛围</span>
+                            <span>Switch between different styles of background music to experience a variety of joyful atmospheres.</span>
                         </li>
                     </ul>
                 </div>
@@ -453,7 +453,7 @@
         let camera = null;
         async function initCamera() {
             try {
-                statusText.textContent = "启动摄像头...";
+                statusText.textContent = "Starting camera...";
                 statusIndicator.className = "status-dot status-loading";
                 
                 camera = new Camera(videoElement, {
@@ -466,16 +466,16 @@
 
                 await camera.start();
                 
-                statusText.textContent = "已连接";
+                statusText.textContent = "Connected";
                 statusIndicator.className = "status-dot status-active";
                 
                 canvasElement.width = videoElement.videoWidth;
                 canvasElement.height = videoElement.videoHeight;
             } catch (error) {
                 console.error(error);
-                statusText.textContent = "摄像头错误";
+                statusText.textContent = "Camera error";
                 statusIndicator.className = "status-dot status-inactive";
-                alert("无法访问摄像头，请确保已授予权限。");
+                alert("Unable to access the camera; please ensure that the necessary permissions have been granted.");
             }
         }
 
