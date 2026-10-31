@@ -1,0 +1,520 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play with star - Joyful music</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .player {
+            position: absolute;
+            bottom: 20px;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 50%;
+            transition: left 0.05s linear;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+        }
+
+        .star {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            color: #fbbf24;
+            font-size: 2rem;
+            filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .video-feed {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .input_video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .output_canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-active { background-color: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .status-inactive { background-color: #ef4444; }
+        .status-loading { background-color: #eab308; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .score-popup {
+            position: absolute;
+            color: #fbbf24;
+            font-weight: bold;
+            font-size: 1.5rem;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        .music-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .music-option {
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .music-option.active {
+            background: #fbbf24;
+            color: #000;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto p-4 max-w-6xl">
+        <!-- 顶部标题栏 -->
+        <header class="glass-panel rounded-xl p-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-star text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold">Play with star - Cheerful music</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center text-sm bg-slate-800/50 px-3 py-1.5 rounded-full">
+                    <span class="status-dot status-loading" id="status-indicator"></span>
+                    <span id="status-text">readying...</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="music-toggle" class="p-2 rounded-full bg-slate-800/50 hover:bg-slate-700 transition-colors">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <div class="text-xl font-bold text-yellow-400">
+                        score: <span id="score">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主游戏区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 游戏画布 -->
+            <div class="lg:col-span-2">
+                <div class="glass-panel rounded-xl p-2">
+                    <div class="game-area" id="game-area">
+                        <div class="player" id="player">
+                            <i class="fa-solid fa-hand"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- 游戏控制按钮 -->
+                    <div class="p-4 flex justify-center gap-4">
+                        <button id="start-game-btn" class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                            <i class="fa-solid fa-play mr-2"></i>start
+                        </button>
+                        <button id="reset-btn" class="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                            <i class="fa-solid fa-redo mr-2"></i>reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧控制面板 -->
+            <div class="space-y-6">
+                <!-- 摄像头预览 -->
+                <div class="glass-panel rounded-xl p-4">
+                    <h3 class="text-lg font-semibold mb-3">camera preview</h3>
+                    <div class="video-feed">
+                        <video class="input_video" playsinline></video>
+                        <canvas class="output_canvas"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2 text-center">Move your hand to control the character's movement left and right</p>
+                </div>
+
+                <!-- 音乐选择面板 -->
+                <div class="glass-panel rounded-xl p-4">
+                    <h3 class="text-lg font-semibold mb-3">Select background music</h3>
+                    <div class="music-selector">
+                        <div class="music-option active" data-music="0">Childlike style</div>
+                        <div class="music-option" data-music="1">Addictive style</div>
+                        <div class="music-option" data-music="2">Cute style</div>
+                    </div>
+                </div>
+
+                <!-- 游戏说明 -->
+                <div class="glass-panel rounded-xl p-4">
+                    <h3 class="text-lg font-semibold mb-3">Game Rules</h3>
+                    <ul class="space-y-2 text-sm text-slate-300">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                            <span>Extend your palm and move it from side to side in front of the camera.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                            <span>Control the character at the bottom to catch the falling stars.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                            <span>Each star caught awards 10 points and triggers a cheerful scoring sound effect.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                            <span>Switch between different styles of background music to experience a variety of joyful atmospheres.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音频元素 -->
+    <audio id="bg-music" loop preload="auto">
+        <source src="./music/game.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="catch-sound" preload="auto">
+        <source src="./music/kids.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // 游戏状态
+        const gameState = {
+            score: 0,
+            isPlaying: false,
+            stars: [],
+            lastSpawnTime: 0,
+            spawnInterval: 1500,
+            playerX: 0,
+            handDetected: false,
+            musicEnabled: true,
+            currentMusicIndex: 0
+        };
+
+        // 背景音乐列表
+        const bgMusicList = [
+            "https://assets.mixkit.co/sfx/preview/mixkit-ethereal-fairy-win-sound-2019.mp3",
+            "https://assets.mixkit.co/sfx/preview/mixkit-games-worldbeat-466.mp3",
+            "https://assets.mixkit.co/sfx/preview/mixkit-sunny-day-122.mp3"
+        ];
+
+        // DOM 元素
+        const gameArea = document.getElementById('game-area');
+        const player = document.getElementById('player');
+        const scoreEl = document.getElementById('score');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const statusText = document.getElementById('status-text');
+        const statusIndicator = document.getElementById('status-indicator');
+        const musicToggle = document.getElementById('music-toggle');
+        const bgMusic = document.getElementById('bg-music');
+        const catchSound = document.getElementById('catch-sound');
+        const musicOptions = document.querySelectorAll('.music-option');
+
+        // 初始化音频设置
+        bgMusic.volume = 0.3;
+        catchSound.volume = 0.7;
+
+        // 音乐切换按钮事件
+        musicToggle.addEventListener('click', () => {
+            gameState.musicEnabled = !gameState.musicEnabled;
+            if (gameState.musicEnabled) {
+                musicToggle.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                if (gameState.isPlaying) bgMusic.play();
+            } else {
+                musicToggle.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                bgMusic.pause();
+            }
+        });
+
+        // 切换背景音乐
+        musicOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                musicOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                const musicIndex = parseInt(option.dataset.music);
+                gameState.currentMusicIndex = musicIndex;
+                
+                // 切换音乐源
+                bgMusic.src = bgMusicList[musicIndex];
+                bgMusic.load();
+                
+                // 如果游戏正在运行，自动播放新音乐
+                if (gameState.isPlaying && gameState.musicEnabled) {
+                    bgMusic.play().catch(e => console.log("音乐切换播放限制:", e));
+                }
+            });
+        });
+
+        // 播放得分音效
+        function playCatchSound() {
+            if (gameState.musicEnabled) {
+                catchSound.currentTime = 0;
+                catchSound.play().catch(e => console.log("音效播放被浏览器策略限制:", e));
+            }
+        }
+
+        // 初始化玩家位置
+        function initPlayer() {
+            const gameWidth = gameArea.clientWidth;
+            gameState.playerX = gameWidth / 2 - 40;
+            player.style.left = gameState.playerX + 'px';
+        }
+
+        // 创建星星
+        function createStar() {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.innerHTML = '<i class="fa-solid fa-star"></i>';
+            star.x = Math.random() * (gameArea.clientWidth - 40);
+            star.y = -40;
+            star.speed = 2 + Math.random() * 3;
+            star.style.left = star.x + 'px';
+            star.style.top = star.y + 'px';
+            gameArea.appendChild(star);
+            gameState.stars.push(star);
+        }
+
+        // 更新游戏逻辑
+        function updateGame(timestamp) {
+            if (!gameState.isPlaying) return;
+
+            // 生成新星星
+            if (timestamp - gameState.lastSpawnTime > gameState.spawnInterval) {
+                createStar();
+                gameState.lastSpawnTime = timestamp;
+            }
+
+            // 更新星星位置
+            for (let i = gameState.stars.length - 1; i >= 0; i--) {
+                const star = gameState.stars[i];
+                star.y += star.speed;
+                star.style.top = star.y + 'px';
+
+                // 碰撞检测
+                const playerRect = player.getBoundingClientRect();
+                const starRect = star.getBoundingClientRect();
+                
+                if (
+                    starRect.bottom >= playerRect.top &&
+                    starRect.top <= playerRect.bottom &&
+                    starRect.left < playerRect.right &&
+                    starRect.right > playerRect.left
+                ) {
+                    // 接住星星，播放音效
+                    playCatchSound();
+                    addScore(10, star.x, star.y);
+                    star.remove();
+                    gameState.stars.splice(i, 1);
+                    continue;
+                }
+
+                // 星星掉出屏幕
+                if (star.y > gameArea.clientHeight) {
+                    star.remove();
+                    gameState.stars.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        // 添加分数动画
+        function addScore(points, x, y) {
+            gameState.score += points;
+            scoreEl.textContent = gameState.score;
+            
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = '+' + points;
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            gameArea.appendChild(popup);
+            
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        // 手势识别回调
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                gameState.handDetected = true;
+
+                // 绘制手部关键点
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
+                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1, radius: 3});
+
+                // 通过手腕位置控制玩家移动
+                const wristX = landmarks[0].x;
+                const gameWidth = gameArea.clientWidth;
+                gameState.playerX = wristX * gameWidth - 40;
+                
+                // 限制玩家在游戏区域内
+                gameState.playerX = Math.max(0, Math.min(gameState.playerX, gameWidth - 80));
+                player.style.left = gameState.playerX + 'px';
+            } else {
+                gameState.handDetected = false;
+            }
+            canvasCtx.restore();
+        }
+
+        // 视频和画布元素
+        const videoElement = document.querySelector('.input_video');
+        const canvasElement = document.querySelector('.output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+
+        // 初始化MediaPipe Hands
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+
+        hands.onResults(onResults);
+
+        // 初始化摄像头
+        let camera = null;
+        async function initCamera() {
+            try {
+                statusText.textContent = "Starting camera...";
+                statusIndicator.className = "status-dot status-loading";
+                
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        await hands.send({image: videoElement});
+                    },
+                    width: 640,
+                    height: 480
+                });
+
+                await camera.start();
+                
+                statusText.textContent = "Connected";
+                statusIndicator.className = "status-dot status-active";
+                
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+            } catch (error) {
+                console.error(error);
+                statusText.textContent = "Camera error";
+                statusIndicator.className = "status-dot status-inactive";
+                alert("Unable to access the camera; please ensure that the necessary permissions have been granted.");
+            }
+        }
+
+        // 事件监听
+        startGameBtn.addEventListener('click', () => {
+            if (!gameState.isPlaying) {
+                gameState.isPlaying = true;
+                // 启动背景音乐
+                if (gameState.musicEnabled) {
+                    bgMusic.play().catch(e => console.log("背景音乐播放被浏览器策略限制:", e));
+                }
+                requestAnimationFrame(updateGame);
+                startGameBtn.innerHTML = '<i class="fa-solid fa-pause mr-2"></i>暂停游戏';
+            } else {
+                gameState.isPlaying = false;
+                bgMusic.pause();
+                startGameBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i>继续游戏';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            gameState.isPlaying = false;
+            bgMusic.pause();
+            gameState.score = 0;
+            scoreEl.textContent = 0;
+            
+            // 清除所有星星
+            gameState.stars.forEach(star => star.remove());
+            gameState.stars = [];
+            
+            startGameBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i>开始游戏';
+            initPlayer();
+        });
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            initPlayer();
+            initCamera();
+        });
+    </script>
+</body>
+</html>
